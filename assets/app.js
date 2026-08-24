@@ -227,6 +227,9 @@ function defaultActive(t, day) { const s = t.schedule; if (!s || s.conditional) 
 function dayStatusOfNode(node, schedOwner, day) {
   const o = node.days ? node.days[day.iso] : undefined;
   if (o !== undefined) { if (o === 0 || o === '0' || o === false) return null; if (o === 1 || o === true) return 'WD'; return byKey[o] ? o : null; }
+  // nosched nodes (e.g. sub-tasks you add by hand) never inherit the parent's
+  // schedule — they stay blank until you paint their own day cells.
+  if (node.nosched) return null;
   if (!defaultActive(schedOwner, day)) return null;
   return node.status && node.status !== 'NS' ? node.status : 'WD';
 }
@@ -579,14 +582,14 @@ function wireBoard() {
     if ((n = e.target.closest('.g-cell')) && n.dataset.cell) { openDayMenu(n, n.dataset.cell, n.dataset.iso); return; }
     // inline sub-task controls (work without Edit mode)
     if ((n = b('data-subdelrow'))) { const f = findAny(n.dataset.subdelrow); if (f && f.parentTask) { const i = f.parentTask.subtasks.indexOf(f.node); if (i >= 0) { f.parentTask.subtasks.splice(i, 1); commit(); refreshAll(); } } return; }
-    if ((n = b('data-subaddend'))) { const t = findTask(n.dataset.subaddend).t; t.subtasks = t.subtasks || []; t.subtasks.push({ id: uid('s-'), title: '', status: 'NS', note: '', days: {} }); commit(); refreshAll(); const inp = $(`.g-row[data-row="${CSS.escape(t.subtasks[t.subtasks.length - 1].id)}"] .sub-title-input`); if (inp) inp.focus(); return; }
-    if ((n = b('data-subaddgroup'))) { const t = findTask(n.dataset.subaddgroup).t; t.subtasks = t.subtasks || []; const s = { id: uid('s-'), title: '', group: n.dataset.group, status: 'NS', note: '', days: {} }; t.subtasks.push(s); commit(); refreshAll(); const inp = $(`.g-row[data-row="${CSS.escape(s.id)}"] .sub-title-input`); if (inp) inp.focus(); return; }
+    if ((n = b('data-subaddend'))) { const t = findTask(n.dataset.subaddend).t; t.subtasks = t.subtasks || []; t.subtasks.push({ id: uid('s-'), title: '', status: 'NS', note: '', days: {}, nosched: true }); commit(); refreshAll(); const inp = $(`.g-row[data-row="${CSS.escape(t.subtasks[t.subtasks.length - 1].id)}"] .sub-title-input`); if (inp) inp.focus(); return; }
+    if ((n = b('data-subaddgroup'))) { const t = findTask(n.dataset.subaddgroup).t; t.subtasks = t.subtasks || []; const s = { id: uid('s-'), title: '', group: n.dataset.group, status: 'NS', note: '', days: {}, nosched: true }; t.subtasks.push(s); commit(); refreshAll(); const inp = $(`.g-row[data-row="${CSS.escape(s.id)}"] .sub-title-input`); if (inp) inp.focus(); return; }
     if ((n = b('data-toggle'))) { const id = n.dataset.toggle; expanded.has(id) ? expanded.delete(id) : expanded.add(id); rebuildBoard(); return; }
     if ((n = b('data-mstoggle'))) { const id = n.dataset.mstoggle; collapsed.has(id) ? collapsed.delete(id) : collapsed.add(id); rebuildBoard(); return; }
     // edit ops
     if ((n = b('data-oadd'))) { findTask(n.dataset.oadd).t.owners.push({ role: '', who: '' }); commit(); rebuildBoard(); return; }
     if ((n = b('data-odel'))) { findTask(n.dataset.odel).t.owners.splice(+n.dataset.oidx, 1); commit(); rebuildBoard(); return; }
-    if ((n = b('data-sadd'))) { const t = findTask(n.dataset.sadd).t; t.subtasks = t.subtasks || []; t.subtasks.push({ id: uid('s-'), title: 'New sub-task', status: 'NS', note: '', days: {} }); commit(); refreshAll(); return; }
+    if ((n = b('data-sadd'))) { const t = findTask(n.dataset.sadd).t; t.subtasks = t.subtasks || []; t.subtasks.push({ id: uid('s-'), title: 'New sub-task', status: 'NS', note: '', days: {}, nosched: true }); commit(); refreshAll(); return; }
     if ((n = b('data-sdel'))) { findTask(n.dataset.sdel).t.subtasks.splice(+n.dataset.sidx, 1); commit(); refreshAll(); return; }
     if ((n = b('data-gadd'))) { const t = findTask(n.dataset.gadd).t; t.detail = t.detail || {}; t.detail['New group ' + (Object.keys(t.detail).length + 1)] = []; commit(); rebuildBoard(); return; }
     if ((n = b('data-gdel'))) { delete findTask(n.dataset.gdel).t.detail[n.dataset.gkey]; commit(); rebuildBoard(); return; }
